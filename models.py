@@ -8,18 +8,22 @@ class Venue(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
+    genres = db.Column(db.ARRAY(db.String()))
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     address = db.Column(db.String(120))
     phone = db.Column(db.String(120))
+    website = db.Column(db.String(500))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
-    # implement any missing fields, as a database migration using Flask-Migrate
+    seeking_talent = db.Column(db.Boolean)
+    seeking_description = db.Column(db.String(500))
     num_upcoming_shows = db.Column(db.Integer, default=0)
+    shows = db.relationship('Show', backref="venue", lazy=True)
+
 
     def __repr__(self):
         return f'<Venue ID: {self.id}, name: {self.name}, city: {self.city}>'
-
 
 class Artist(db.Model):
     __tablename__ = 'artists'
@@ -32,11 +36,16 @@ class Artist(db.Model):
     genres = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+    seeking_venue= db.Column(db.Boolean)
+    website = db.Column(db.String(500))
+    seeking_description = db.Column(db.String(500))
+    shows = db.relationship('Show', backref="artists", lazy=True)
 
     def __repr__(self):
         return f'<Artist ID: {self.id}, name: {self.name}>'
 
-
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
-# TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
+class Show(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    venue_id = db.Column(db.Integer, db.ForeignKey('venues.id'))
+    artist_id = db.Column(db.Integer, db.ForeignKey('artists.id'))
+    starting_time = db.Column(db.DateTime)
