@@ -41,7 +41,9 @@
 			<i class="fas fa-moon"></i> Not currently seeking talent
 		</p>
 		{% endif %}
+		
 	</div>
+
 	<div class="col-sm-6">
 		<img src="{{ venue.image_link }}" alt="Venue Image" />
 	</div>
@@ -76,6 +78,29 @@
 </section>
 
 <a href="/venues/{{ venue.id }}/edit"><button class="btn btn-primary btn-lg">Edit</button></a>
+<button id="del-venue-btn" class="btn btn-primary btn-lg" data-id="{{ venue.id }}">&cross;  Delete </button>
+
+
+
+
+<script>
+const del_btn = document.getElementById('del-venue-btn')
+del_btn.onclick = function(e) {
+	const venue_id = e.target.dataset['id']
+    fetch('/venues/' + venue_id, {
+      method: 'DELETE'})
+	.then(function(response) {
+		if (!response.ok){
+			console.log("Error", response);
+		} else {
+			console.log("Success", response);
+			location.reload()
+			//window.location.href="pages/home.html"
+		}
+	})
+}
+        
+
+</script>
 
 {% endblock %}
-

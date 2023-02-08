@@ -120,7 +120,11 @@ class VenueForm(Form):
         'website_link'
     )
 
-    seeking_talent = BooleanField( 'seeking_talent' )
+
+    seeking_talent = BooleanField(
+
+    'seeking_talent')
+ 
 
     seeking_description = StringField(
         'seeking_description'
