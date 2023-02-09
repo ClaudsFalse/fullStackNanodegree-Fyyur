@@ -173,8 +173,8 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
-  error = False
-  try:
+  form = VenueForm(request.form, meta={'csrf': False})
+  if form.validate_on_submit():
     new_venue = Venue(name=request.form['name'], 
                   city = request.form['city'], 
                   state = request.form['state'],
@@ -190,18 +190,49 @@ def create_venue_submission():
                   )
     db.session.add(new_venue)
     db.session.commit()
-        
-  except:
-    error = True
+
+  else:
     db.session.rollback()
     print(sys.exc_info())
-  finally: 
-      db.session.close()
-  if error:
-    flash('An error occurred. Venue ' + request.form['name']+ ' could not be listed.')
-  else:
-    flash('Venue ' + request.form['name'] + ' was successfully listed!')
-    return render_template('pages/home.html')
+    print(form.errors)
+    flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed. Please See below for errors')  
+    for error in form.errors:
+      if error == 'phone':
+        flash('You entered an invalid phone number. It should only contain digits')
+      if error == 'facebook_link':
+        flash('You entered an invalid facebook link')
+      if error == 'website_link':
+        flash('You entered an invalid website link')
+
+  return render_template('pages/home.html', form=form)
+  # try:
+  #   new_venue = Venue(name=request.form['name'], 
+  #                 city = request.form['city'], 
+  #                 state = request.form['state'],
+  #                 address = request.form['address'],
+  #                 phone = request.form['phone'],
+  #                 genres = request.form['genres'],
+  #                 facebook_link = request.form['facebook_link'],
+  #                 image_link = request.form['image_link'],
+  #                 website = request.form['website_link'],
+  #                 # the following will return y rather than True (or False) so casting the value to needed boolean
+  #                 seeking_talent = True if 'seeking_talent' in request.form else False,
+  #                 seeking_description = request.form['seeking_description']
+  #                 )
+    # db.session.add(new_venue)
+    # db.session.commit()
+        
+  # except:
+  #   error = True
+  #   db.session.rollback()
+  #   print(sys.exc_info())
+  # finally: 
+  #     db.session.close()
+  # if error:
+  #   flash('An error occurred. Venue ' + request.form['name']+ ' could not be listed.')
+  # else:
+  #   flash('Venue ' + request.form['name'] + ' was successfully listed!')
+  #   return render_template('pages/home.html')
 
 @app.route('/venues/<int:venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
@@ -420,10 +451,8 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
-  error = False
-
-  # obtain the data posted via the form and catch error if any 
-  try:
+  form = ArtistForm(request.form, meta={'csrf': False})
+  if form.validate_on_submit():
     new_artist = Artist(name=request.form['name'], 
                 city = request.form['city'], 
                 state = request.form['state'],
@@ -438,18 +467,50 @@ def create_artist_submission():
                 )
     db.session.add(new_artist)
     db.session.commit()
-  except: 
-    error = True
+  else:
     db.session.rollback()
     print(sys.exc_info())
-  finally: 
-    db.session.close()
-  if error:
-    flash('An error occurred. Artist ' + request.form['name']+ ' could not be listed.')
-  if not error: 
-    flash('Artist ' + request.form['name'] + ' was successfully listed!')
+    print(form.errors)
+    flash('An error occurred. Artist ' + request.form['name'] + ' could not be listed. Please See below for errors')  
+    for error in form.errors:
+      if error == 'phone':
+        flash('You entered an invalid phone number. It should only contain digits')
+      if error == 'facebook_link':
+        flash('You entered an invalid facebook link')
+      if error == 'website_link':
+        flash('You entered an invalid website link')
+
+  return render_template('pages/home.html', form=form)
+#   error = False
+
+#   # obtain the data posted via the form and catch error if any 
+#   try:
+#     new_artist = Artist(name=request.form['name'], 
+#                 city = request.form['city'], 
+#                 state = request.form['state'],
+#                 phone = request.form['phone'],
+#                 genres = request.form['genres'],
+#                 facebook_link = request.form['facebook_link'],
+#                 image_link = request.form['image_link'],
+#                 website = request.form['website_link'],
+#                 # the following will return y rather than True (or False) so casting the value to needed boolean
+#                 seeking_venue = True if 'seeking_venue' in request.form else False,
+#                 seeking_description = request.form['seeking_description']
+#                 )
+#     db.session.add(new_artist)
+#     db.session.commit()
+#   except: 
+#     error = True
+#     db.session.rollback()
+#     print(sys.exc_info())
+#   finally: 
+#     db.session.close()
+#   if error:
+#     flash('An error occurred. Artist ' + request.form['name']+ ' could not be listed.')
+#   if not error: 
+#     flash('Artist ' + request.form['name'] + ' was successfully listed!')
   
-  return render_template('pages/home.html')
+#   return render_template('pages/home.html')
 
 #  Shows
 #  ----------------------------------------------------------------
