@@ -2,7 +2,6 @@
 # Imports
 #----------------------------------------------------------------------------#
 
-import json
 import dateutil.parser
 import babel
 from flask import Flask, render_template, request, Response, flash, redirect, url_for, abort
@@ -33,7 +32,6 @@ migrate = Migrate(app, db)
 # Create tables in the db from models
 #-----------------------------#
 from models import *
-#db.create_all()
 #----------------------------------------------------------------------------#
 # Filters.
 #----------------------------------------------------------------------------#
@@ -168,42 +166,42 @@ def show_venue(venue_id):
 
 @app.route('/venues/create', methods=['GET'])
 def create_venue_form():
-  form = VenueForm()
+  form = VenueForm(request.form, meta={'csrf': False})
+  
+
   return render_template('forms/new_venue.html', form=form)
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
   error = False
-
-  # obtain the data posted via the form and catch error if any 
   try:
     new_venue = Venue(name=request.form['name'], 
-                city = request.form['city'], 
-                state = request.form['state'],
-                address = request.form['address'],
-                phone = request.form['phone'],
-                genres = request.form['genres'],
-                facebook_link = request.form['facebook_link'],
-                image_link = request.form['image_link'],
-                website = request.form['website_link'],
-                # the following will return y rather than True (or False) so casting the value to needed boolean
-                seeking_talent = True if 'seeking_talent' in request.form else False,
-                seeking_description = request.form['seeking_description']
-                )
+                  city = request.form['city'], 
+                  state = request.form['state'],
+                  address = request.form['address'],
+                  phone = request.form['phone'],
+                  genres = request.form['genres'],
+                  facebook_link = request.form['facebook_link'],
+                  image_link = request.form['image_link'],
+                  website = request.form['website_link'],
+                  # the following will return y rather than True (or False) so casting the value to needed boolean
+                  seeking_talent = True if 'seeking_talent' in request.form else False,
+                  seeking_description = request.form['seeking_description']
+                  )
     db.session.add(new_venue)
     db.session.commit()
-  except: 
+        
+  except:
     error = True
     db.session.rollback()
     print(sys.exc_info())
   finally: 
-    db.session.close()
+      db.session.close()
   if error:
     flash('An error occurred. Venue ' + request.form['name']+ ' could not be listed.')
-  if not error: 
+  else:
     flash('Venue ' + request.form['name'] + ' was successfully listed!')
-  
-  return render_template('pages/home.html')
+    return render_template('pages/home.html')
 
 @app.route('/venues/<int:venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
