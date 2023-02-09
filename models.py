@@ -19,7 +19,7 @@ class Venue(db.Model):
     seeking_talent = db.Column(db.Boolean)
     seeking_description = db.Column(db.String(500))
     num_upcoming_shows = db.Column(db.Integer, default=0)
-    shows = db.relationship('Show', backref="venue", lazy=True)
+    shows = db.relationship('Show', backref="venue", lazy="joined")
 
 
     def __repr__(self):
@@ -39,13 +39,17 @@ class Artist(db.Model):
     seeking_venue= db.Column(db.Boolean)
     website = db.Column(db.String(500))
     seeking_description = db.Column(db.String(500))
-    shows = db.relationship('Show', backref="artists", lazy=True)
+    shows = db.relationship('Show', backref="artists", lazy="joined")
 
     def __repr__(self):
         return f'<Artist ID: {self.id}, name: {self.name}>'
 
 class Show(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    venue_id = db.Column(db.Integer, db.ForeignKey('venues.id'))
-    artist_id = db.Column(db.Integer, db.ForeignKey('artists.id'))
+    # define foreign keys that map to the primary keys in the respective parent tables
+    venue_id = db.Column(db.Integer, db.ForeignKey('venues.id'), nullable=False)
+    artist_id = db.Column(db.Integer, db.ForeignKey('artists.id'), nullable=False)
     starting_time = db.Column(db.DateTime)
+
+    def __repr__(self):
+        return f'<Show ID: {self.id}, artist id: {self.artist_id}, venue id: {self.venue_id}>'

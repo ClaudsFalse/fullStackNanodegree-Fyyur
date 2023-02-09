@@ -459,18 +459,21 @@ def create_artist_submission():
 @app.route('/shows')
 def shows():
   # displays list of shows at /shows
-  all_shows = db.session.query(Show).join(Artist).join(Venue).all()
 
+  shows = Show.query.all()
+  
   data = []
   for show in shows:
+    venue_query = Venue.query.get(show.venue_id)
+    artist_query = Artist.query.get(show.artist_id)
     data.append(
       {
         "venue_id": show.venue_id,
-        "venue_name": show.venue.name,
+        "venue_name": venue_query.name,
         "artist_id": show.artist_id,
-        "artist_name": show.artist.name,
-        "artist_image_link": show.artist.image_link,
-        "start_time": show.starting_time
+        "artist_name": artist_query.name,
+        "artist_image_link": artist_query.image_link,
+        "start_time": str(show.starting_time)
       }
     )
 
@@ -487,11 +490,11 @@ def create_show_submission():
   # called to create new shows in the db, upon submitting new show listing form
   error = False
   # obtain the data posted via the form and catch error if any 
-  
+  form = ShowForm()
   try:
-    new_show = Show(artist_id = request.form['artist_id'],
-    venue_id = request.form['venue_id'],
-    start_time = request.form['start_time']
+    new_show = Show(artist_id = form.artist_id.data,
+    venue_id = form.venue_id.data,
+    starting_time = form.start_time.data
     )
     db.session.add(new_show)
     db.session.commit()
