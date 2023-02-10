@@ -84,20 +84,17 @@
 
 
 <script>
-const del_btn = document.getElementById('del-venue-btn')
+const del_btn = document.getElementById('del-venue-btn');
 del_btn.onclick = function(e) {
-	const venue_id = e.target.dataset['id']
+	const venue_id = e.target.dataset['id'];
     fetch('/venues/' + venue_id, {
       method: 'DELETE'})
-	.then(function(response) {
-		if (!response.ok){
-			console.log("Error", response);
-		} else {
-			console.log("Success", response);
-			location.reload()
-			//window.location.href="pages/home.html"
-		}
-	})
+	  .then(function() {
+		window.location.href = '/venues';
+	  })
+	  .catch(function(e){
+		console.log('error', e)
+	  })
 }
         
 

@@ -9,6 +9,8 @@ Declare custom validator functions here
 '''
 
 def phone_number_validator(form, field):
+    # the following regular expression was suggested in an answer to a question on the udacity Q&A, 
+    # and it aims at filter for digits only. 
     if not re.search(r"^[0-9]*$", field.data):
         raise ValidationError("Invalid phone number. It should only contain digits.")
  

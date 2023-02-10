@@ -1,8 +1,8 @@
 import os
+
 SECRET_KEY = os.urandom(32)
 # Grabs the folder where the script runs.
 basedir = os.path.abspath(os.path.dirname(__file__))
-
 # Enable debug mode.
 DEBUG = True
 
@@ -10,6 +10,5 @@ DEBUG = True
 
 
 # IMPLEMENT DATABASE URL
-SQLALCHEMY_DATABASE_URI = 'postgresql://claudia@localhost:5432/fyyur_db'
-
+SQLALCHEMY_DATABASE_URI = 'postgresql://claudia@localhost:5432/fyyur_db' 
 SQLALCHEMY_TRACK_MODIFICATIONS = False
