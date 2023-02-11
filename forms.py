@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask_wtf import Form, FlaskForm
+from flask_wtf import FlaskForm as Form
 from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
 from wtforms.validators import DataRequired, AnyOf, URL, ValidationError, Length
 import re
@@ -8,12 +8,21 @@ import re
 Declare custom validator functions here
 '''
 
-def phone_number_validator(form, field):
-    # the following regular expression was suggested in an answer to a question on the udacity Q&A, 
-    # and it aims at filter for digits only. 
-    if not re.search(r"^[0-9]*$", field.data):
-        raise ValidationError("Invalid phone number. It should only contain digits.")
- 
+def phone_number_validator(number):
+    """ Validate phone numbers like:
+    1234567890 - no space
+    123.456.7890 - dot separator
+    123-456-7890 - dash separator
+    123 456 7890 - space separator
+    Patterns:
+    000 = [0-9]{3}
+    0000 = [0-9]{4}
+    -.  = ?[-. ]
+    """
+    regex = re.compile('^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$')
+    return regex.match(number)
+
+
 '''
 The lists containing state and genres choices are re-used across 
 artist and venue form. We can extract them and re-use in class. 
@@ -123,7 +132,7 @@ class VenueForm(Form):
     )
     # add custom validation for phone numbers: digits only 
     phone = StringField(
-        'phone', validators=[Length(min=5, max=10), phone_number_validator]
+        'phone', validators=[phone_number_validator]
     )
     image_link = StringField(
         'image_link'
@@ -147,6 +156,21 @@ class VenueForm(Form):
         'seeking_description'
     )
 
+    def validate(self):
+        '''
+        define a custom validate method
+        '''
+        rv = Form.validate(self)
+        if not rv:
+            return False
+        if not phone_number_validator(self.phone.data):
+            self.phone.errors.append('Invalid phone number.')
+            return False
+        if not set(self.genres.data).issubset(dict(genres_choices).keys()):
+            self.genres.errors.append('Invalid genres')
+            return False
+        # if validation is passed 
+        return True
   
 
 class ArtistForm(Form):
@@ -161,7 +185,7 @@ class ArtistForm(Form):
         choices=states_choices
     )
     phone = StringField(
-        'phone', validators=[Length(min=5, max=10), phone_number_validator]
+        'phone', validators=[phone_number_validator]
     )
     image_link = StringField(
         'image_link'
@@ -183,4 +207,21 @@ class ArtistForm(Form):
     seeking_description = StringField(
             'seeking_description'
      )
+
+
+    def validate(self):
+        '''
+        define a custom validate method
+        '''
+        rv = Form.validate(self)
+        if not rv:
+            return False
+        if not phone_number_validator(self.phone.data):
+            self.phone.errors.append('Invalid phone number.')
+            return False
+        if not set(self.genres.data).issubset(dict(genres_choices).keys()):
+            self.genres.errors.append('Invalid genres')
+            return False
+        # if validation is passed 
+        return True
 

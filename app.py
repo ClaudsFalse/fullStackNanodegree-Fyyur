@@ -3,9 +3,15 @@
 #----------------------------------------------------------------------------#
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for, abort
+from flask import (
+    Flask, 
+    render_template, 
+    request, 
+    flash, 
+    redirect, 
+    url_for
+)
 from flask_moment import Moment
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import literal
 import logging
 from logging import Formatter, FileHandler
@@ -13,7 +19,7 @@ from flask_wtf import Form
 from forms import *
 from flask_migrate import Migrate
 import sys
-from sqlalchemy.exc import SQLAlchemyError
+from models import  db, Venue, Artist, Show
 
 #----------------------------------------------------------------------------#
 # App Config.
@@ -22,14 +28,12 @@ from sqlalchemy.exc import SQLAlchemyError
 app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
-db = SQLAlchemy(app)
-db.init_app(app)
 migrate = Migrate(app, db)
-
+db.init_app(app)
 #-----------------------------#
 # Create tables in the db from models
 #-----------------------------#
-from models import *
+
 #----------------------------------------------------------------------------#
 # Filters.
 #----------------------------------------------------------------------------#
@@ -105,55 +109,34 @@ def search_venues():
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
-  # creating data dictionary extracting from database
-  past_shows = []
-  upcoming_shows = []
-  future_shows_count = 0
-  past_shows_count = 0
-  data = {}
+
   # query all tables and filter by show occurring previous than today's date, to get data for past shows
-  joined_query_all_shows=db.session.query(Show).join(Artist).filter(Show.venue_id==venue_id).all()
-
   # individual venue query to show venues with no shows
-  venue = Venue.query.get(venue_id)
-
-  data['id'] = venue.id
-  data['name'] = venue.name
-  data['genres'] = venue.genres
-  data['address']= venue.address
-  data['city'] = venue.city
-  data['state'] = venue.state
-  data['phone'] = venue.phone
-  data['website'] = venue.website
-  data['facebook_link'] = venue.facebook_link
-  data['seeking_talent'] = venue.seeking_talent
-  data['seeking_description'] = venue.seeking_description
-  data['image_link'] = venue.image_link
+  venue = Venue.query.get_or_404(venue_id)
 
   # this will run only if there are shows assigned to the venue 
-  for show in joined_query_all_shows:
-    shows_dic = {
-    "artist_id" : show.artist_id,
-    "artist_name": show.artist.name,
-    "artist_image_link": show.artist.image_link,
-    "start_time": str(show.starting_time)
-    }
-    
-    # check if the shows are future or due to happen today 
-    if show.starting_time >= datetime.now():
-      future_shows_count += 1
-      upcoming_shows.append(shows_dic)
-      data["upcoming_shows"] = upcoming_shows
+  past_shows = []
+  upcoming_shows = []
 
-    # else it means the shows are in the past
+  for show in venue.shows:
+    temp_show = {
+        'artist_id': show.artist_id,
+        'artist_name': show.artist.name,
+        'artist_image_link': show.artist.image_link,
+        'start_time': show.start_time.strftime("%m/%d/%Y, %H:%M")
+        }
+    if show.start_time <= datetime.now():
+        past_shows.append(temp_show)
     else:
-      past_shows_count += 1
-      past_shows.append(shows_dic)
-      data["past_shows"] = past_shows
-  
-  data["past_shows_count"] = past_shows_count
-  data["upcoming_shows_count"] = future_shows_count
-  print(data)
+        upcoming_shows.append(temp_show)
+
+  # object class to dict
+  data = vars(venue)
+
+  data['past_shows'] = past_shows
+  data['upcoming_shows'] = upcoming_shows
+  data['past_shows_count'] = len(past_shows)
+  data['upcoming_shows_count'] = len(upcoming_shows)
   ## handle error if no venue is returned. 
   return render_template('pages/show_venue.html', venue=data)
 
@@ -169,39 +152,47 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
+  # set the FlaskForm 
   form = VenueForm(request.form, meta={'csrf': False})
-  if form.validate_on_submit():
-    new_venue = Venue(name=request.form['name'], 
-                  city = request.form['city'], 
-                  state = request.form['state'],
-                  address = request.form['address'],
-                  phone = request.form['phone'],
-                  genres = request.form['genres'],
-                  facebook_link = request.form['facebook_link'],
-                  image_link = request.form['image_link'],
-                  website = request.form['website_link'],
+
+  # validate the fields
+  if form.validate():
+
+    # prepare for transaction with try/catch block 
+    try:
+      new_venue = Venue(name=form.name.data, 
+                  city = form.city.data, 
+                  state = form.state.data,
+                  address = form.address.data,
+                  phone = form.phone.data,
+                  genres = form.genres.data,
+                  facebook_link = form.facebook_link.data,
+                  image_link = form.image_link.data,
+                  website = form.website_link.data,
                   # the following will return y rather than True (or False) so casting the value to needed boolean
                   seeking_talent = True if 'seeking_talent' in request.form else False,
                   seeking_description = request.form['seeking_description']
                   )
-    db.session.add(new_venue)
-    db.session.commit()
-    flash('Venue ' + request.form['name'] + ' created successfully!')
+      db.session.add(new_venue)
+      db.session.commit()
+    except ValueError as e:
+      print(e)
+      db.session.rollback()
+      print(sys.exc_info())
+      print(sys.exc_info())
+    finally:
+      db.session.close()
 
+  # if there are errors in the form and could not be validated     
   else:
-    db.session.rollback()
-    print(sys.exc_info())
-    print(form.errors)
-    flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed. Please See below for errors')  
-    for error in form.errors:
-      if error == 'phone':
-        flash('You entered an invalid phone number. It should only contain digits')
-      if error == 'facebook_link':
-        flash('You entered an invalid facebook link')
-      if error == 'website_link':
-        flash('You entered an invalid website link')
-  
-  return render_template('pages/home.html', form=form)
+    message = []
+    for field, err in form.errors.items():
+      message.append(field + ' ' + "|".join(err))
+    flash('Errors' + str(message))
+    form = VenueForm()
+    return render_template('forms/new_venue.html', form=form)
+  return render_template('pages/home.html')
+    
   
 @app.route('/venues/<int:venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
@@ -415,67 +406,47 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
+    # set the FlaskForm 
   form = ArtistForm(request.form, meta={'csrf': False})
-  if form.validate_on_submit():
-    new_artist = Artist(name=request.form['name'], 
-                city = request.form['city'], 
-                state = request.form['state'],
-                phone = request.form['phone'],
-                genres = request.form['genres'],
-                facebook_link = request.form['facebook_link'],
-                image_link = request.form['image_link'],
-                website = request.form['website_link'],
-                # the following will return y rather than True (or False) so casting the value to needed boolean
-                seeking_venue = True if 'seeking_venue' in request.form else False,
-                seeking_description = request.form['seeking_description']
-                )
-    db.session.add(new_artist)
-    db.session.commit()
-    flash('Artist ' + request.form['name'] + ' created successfully!')
+
+  # validate the fields
+  if form.validate():
+
+    # prepare for transaction with try/catch block 
+    try:
+      new_artist = Artist(name=form.name.data, 
+                  city = form.city.data, 
+                  state = form.state.data,
+                  address = form.address.data,
+                  phone = form.phone.data,
+                  genres = form.genres.data,
+                  facebook_link = form.facebook_link.data,
+                  image_link = form.image_link.data,
+                  website = form.website_link.data,
+                  # the following will return y rather than True (or False) so casting the value to needed boolean
+                  seeking_venue = True if 'seeking_venue' in request.form else False,
+                  seeking_description = request.form['seeking_description']
+                  )
+      db.session.add(new_artist)
+      db.session.commit()
+    except ValueError as e:
+      print(e)
+      db.session.rollback()
+      print(sys.exc_info())
+      print(sys.exc_info())
+    finally:
+      db.session.close()
+
+  # if there are errors in the form and could not be validated     
   else:
-    db.session.rollback()
-    print(sys.exc_info())
-    print(form.errors)
-    flash('An error occurred. Artist ' + request.form['name'] + ' could not be listed. Please See below for errors')  
-    for error in form.errors:
-      if error == 'phone':
-        flash('You entered an invalid phone number. It should only contain digits')
-      if error == 'facebook_link':
-        flash('You entered an invalid facebook link')
-      if error == 'website_link':
-        flash('You entered an invalid website link')
-
-  return render_template('pages/home.html', form=form)
-#   error = False
-
-#   # obtain the data posted via the form and catch error if any 
-#   try:
-#     new_artist = Artist(name=request.form['name'], 
-#                 city = request.form['city'], 
-#                 state = request.form['state'],
-#                 phone = request.form['phone'],
-#                 genres = request.form['genres'],
-#                 facebook_link = request.form['facebook_link'],
-#                 image_link = request.form['image_link'],
-#                 website = request.form['website_link'],
-#                 # the following will return y rather than True (or False) so casting the value to needed boolean
-#                 seeking_venue = True if 'seeking_venue' in request.form else False,
-#                 seeking_description = request.form['seeking_description']
-#                 )
-#     db.session.add(new_artist)
-#     db.session.commit()
-#   except: 
-#     error = True
-#     db.session.rollback()
-#     print(sys.exc_info())
-#   finally: 
-#     db.session.close()
-#   if error:
-#     flash('An error occurred. Artist ' + request.form['name']+ ' could not be listed.')
-#   if not error: 
-#     flash('Artist ' + request.form['name'] + ' was successfully listed!')
+    message = []
+    for field, err in form.errors.items():
+      message.append(field + ' ' + "|".join(err))
+    flash('Errors' + str(message))
+    form = VenueForm()
+    return render_template('forms/new_artist.html', form=form)
+  return render_template('pages/home.html')
   
-#   return render_template('pages/home.html')
 
 #  Shows
 #  ----------------------------------------------------------------
