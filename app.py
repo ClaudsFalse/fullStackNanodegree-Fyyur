@@ -62,7 +62,6 @@ def index():
 
 def venues():
   data = []
-
   # create a data structure to hold the venues data 
   # so that data is a list of dictionaries, that lets us group the data by city, 
   # and the key "venues" is associated 
@@ -119,11 +118,12 @@ def show_venue(venue_id):
   upcoming_shows = []
 
   for show in venue.shows:
+    
     temp_show = {
         'artist_id': show.artist_id,
         'artist_name': show.artist.name,
         'artist_image_link': show.artist.image_link,
-        'start_time': show.start_time.strftime("%m/%d/%Y, %H:%M")
+        'start_time': str(show.start_time)
         }
     if show.start_time <= datetime.now():
         past_shows.append(temp_show)
@@ -138,6 +138,7 @@ def show_venue(venue_id):
   data['past_shows_count'] = len(past_shows)
   data['upcoming_shows_count'] = len(upcoming_shows)
   ## handle error if no venue is returned. 
+
   return render_template('pages/show_venue.html', venue=data)
 
 #  Create Venue
@@ -173,8 +174,10 @@ def create_venue_submission():
                   seeking_talent = True if 'seeking_talent' in request.form else False,
                   seeking_description = request.form['seeking_description']
                   )
+      print(form.genres.data)
       db.session.add(new_venue)
       db.session.commit()
+      flash('Venue ' + form.name.data + ' was created successfully ⭐')
     except ValueError as e:
       print(e)
       db.session.rollback()
@@ -188,7 +191,7 @@ def create_venue_submission():
     message = []
     for field, err in form.errors.items():
       message.append(field + ' ' + "|".join(err))
-    flash('Errors' + str(message))
+    flash('🛑 Errors' + str(message))
     form = VenueForm()
     return render_template('forms/new_venue.html', form=form)
   return render_template('pages/home.html')
@@ -231,12 +234,11 @@ def search_artists():
   search_term = request.form.get('search_term', '')
   results = [artist for artist in Artist.query.filter(Artist.name.ilike(f'%{search_term}%')).all()]
   
-  # if show.starting_time >= datetime.now()
   for result in results:
     num_upcoming_shows = 0
     upcoming_shows = Show.query.filter_by(artist_id=result.id).all()
     for show in upcoming_shows:
-      if show.starting_time >= datetime.now():
+      if show.start_time >= datetime.now():
         num_upcoming_shows += 1
     data.append({
       "id": result.id,
@@ -254,44 +256,33 @@ def search_artists():
 def show_artist(artist_id):
   
   joined_query_all_shows=db.session.query(Show).join(Artist).filter(Show.artist_id==artist_id).all()
-  artist = Artist.query.get(artist_id)
+  artist = Artist.query.get_or_404(artist_id)
   upcoming_shows = []
   past_shows = []
-  upcoming_shows_count = 0
-  past_shows_count = 0
+  data = vars(artist)
 
-  data = {
-  "id": artist.id,
-  "name": artist.name,
-  "genres": artist.genres,
-  "city": artist.city,
-  "state": artist.state,
-  "phone": artist.phone,
-  "website": artist.website,
-  "facebook_link": artist.facebook_link,
-  "seeking_venue": artist.seeking_venue,
-  "seeking_description": artist.seeking_description,
-  "image_link": artist.image_link}
+  for show in artist.shows: 
+    print("venues", show.venue.genres)
+    print("artist", show.artist.genres)
 
   for show in joined_query_all_shows:
     shows_dic = {
       "venue_id":show.venue.id,
       "venue_image_link": show.venue.image_link,
-      "start_time": str(show.starting_time)
+      "start_time": str(show.start_time)
     }
     # assign upcoming shows to variable
-    if show.starting_time >= datetime.now():
-      upcoming_shows_count += 1
+    if show.start_time >= datetime.now():
       upcoming_shows.append(shows_dic)
-      data["upcoming_shows"] = upcoming_shows
     else:
-      past_shows_count += 1
       past_shows.append(shows_dic)
-      data["past_shows"] = past_shows
 
-  data["past_shows_count"] = past_shows_count
-  data["upcoming_shows_count"] = upcoming_shows_count
+  data["past_shows"] = past_shows    
+  data["upcoming_shows"] = upcoming_shows
+  data["past_shows_count"] = len(past_shows)
+  data["upcoming_shows_count"] = len(upcoming_shows)
 
+  print(data["genres"])
   return render_template('pages/show_artist.html', artist=data)
 
 #  Update
@@ -401,7 +392,8 @@ def edit_venue_submission(venue_id):
 
 @app.route('/artists/create', methods=['GET'])
 def create_artist_form():
-  form = ArtistForm()
+  form = ArtistForm(request.form, meta={'csrf': False})
+
   return render_template('forms/new_artist.html', form=form)
 
 @app.route('/artists/create', methods=['POST'])
@@ -417,7 +409,6 @@ def create_artist_submission():
       new_artist = Artist(name=form.name.data, 
                   city = form.city.data, 
                   state = form.state.data,
-                  address = form.address.data,
                   phone = form.phone.data,
                   genres = form.genres.data,
                   facebook_link = form.facebook_link.data,
@@ -427,8 +418,10 @@ def create_artist_submission():
                   seeking_venue = True if 'seeking_venue' in request.form else False,
                   seeking_description = request.form['seeking_description']
                   )
+      print(form.genres.data)
       db.session.add(new_artist)
       db.session.commit()
+      flash('Artist ' + form.name.data + ' successfuly created ⭐')
     except ValueError as e:
       print(e)
       db.session.rollback()
@@ -442,8 +435,8 @@ def create_artist_submission():
     message = []
     for field, err in form.errors.items():
       message.append(field + ' ' + "|".join(err))
-    flash('Errors' + str(message))
-    form = VenueForm()
+    flash('🛑 Errors:' + str(message))
+    form = ArtistForm()
     return render_template('forms/new_artist.html', form=form)
   return render_template('pages/home.html')
   
@@ -464,7 +457,7 @@ def shows():
         "artist_id": show.artist_id,
         "artist_name": show.artist.name,
         "artist_image_link": show.artist.image_link,
-        "start_time": str(show.starting_time)
+        "start_time": str(show.start_time)
       }
     )
 
@@ -485,7 +478,7 @@ def create_show_submission():
   try:
     new_show = Show(artist_id = form.artist_id.data,
     venue_id = form.venue_id.data,
-    starting_time = form.start_time.data
+    start_time = form.start_time.data
     )
     db.session.add(new_show)
     db.session.commit()
