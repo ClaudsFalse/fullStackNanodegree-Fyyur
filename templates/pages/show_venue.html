@@ -90,7 +90,7 @@ del_btn.onclick = function(e) {
     fetch('/venues/' + venue_id, {
       method: 'DELETE'})
 	  .then(function() {
-		window.location.href = '/venues';
+		window.location.href = '/';
 	  })
 	  .catch(function(e){
 		console.log('error', e)

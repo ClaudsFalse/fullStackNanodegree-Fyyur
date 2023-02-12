@@ -62,6 +62,9 @@ def index():
 
 def venues():
   data = []
+  venues = Venue.query.all()
+  if len(venues) == 0:
+    return render_template('errors/404.html')
   # create a data structure to hold the venues data 
   # so that data is a list of dictionaries, that lets us group the data by city, 
   # and the key "venues" is associated 
@@ -218,6 +221,8 @@ def delete_venue(venue_id):
 @app.route('/artists')
 def artists():
   artists = Artist.query.all()
+  if len(artists) == 0:
+    return render_template('errors/404.html')
   data = []
   for artist in artists:
     data.append({
@@ -447,7 +452,11 @@ def create_artist_submission():
 @app.route('/shows')
 def shows():
   # displays list of shows at /shows
+  
+
   joined_query_all_shows=db.session.query(Show).join(Artist, Venue).all()  
+  if len(joined_query_all_shows) == 0:
+    return render_template('errors/404.html')
   data = []
   for show in joined_query_all_shows:
     data.append(

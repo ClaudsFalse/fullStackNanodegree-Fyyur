@@ -9,7 +9,7 @@ db = SQLAlchemy()
 class Venue(db.Model):
     __tablename__ = 'venues'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
     genres = db.Column(db.ARRAY(db.String), nullable=False)
     city = db.Column(db.String(120))
