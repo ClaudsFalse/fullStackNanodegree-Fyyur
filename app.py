@@ -30,6 +30,7 @@ moment = Moment(app)
 app.config.from_object('config')
 migrate = Migrate(app, db)
 db.init_app(app)
+# app.url_map.strict_slashes = False
 #-----------------------------#
 # Create tables in the db from models
 #-----------------------------#

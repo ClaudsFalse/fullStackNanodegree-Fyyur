@@ -21,7 +21,6 @@ class Venue(db.Model):
     facebook_link = db.Column(db.String(120))
     seeking_talent = db.Column(db.Boolean)
     seeking_description = db.Column(db.String(500))
-    num_upcoming_shows = db.Column(db.Integer, default=0)
     shows = db.relationship('Show', backref='venue', lazy='joined', cascade="all, delete")
 
 
